@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "教研云知识树采集助手",
+  "version": "1.0",
+  "description": "采集教研云网站上的知识树结构数据并导出为JSON文件",
+  "permissions": ["activeTab", "scripting", "downloads", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.jiaoyanyun.com/*", 
+        "https://*.gaotu100.com/*",
+        "https://*.jyy.com/*",
+        "https://*.cms.education/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "开始采集数据"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}

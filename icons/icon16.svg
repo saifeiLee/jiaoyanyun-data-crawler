@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="16"
+   height="16"
+   viewBox="0 0 16 16"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <rect
+     style="fill:#4285f4;fill-opacity:1;stroke:none"
+     width="16"
+     height="16"
+     x="0"
+     y="0"
+     rx="2"
+     ry="2" />
+  <!-- Tree trunk -->
+  <rect
+     style="fill:#ffffff;fill-opacity:1;stroke:none"
+     width="1.5"
+     height="7.5"
+     x="7.25"
+     y="6.25" />
+  <!-- Branches -->
+  <rect
+     style="fill:#ffffff;fill-opacity:1;stroke:none"
+     width="7.5"
+     height="1"
+     x="4.25"
+     y="6.25" />
+  <rect
+     style="fill:#ffffff;fill-opacity:1;stroke:none"
+     width="6"
+     height="1"
+     x="5"
+     y="4.25" />
+  <rect
+     style="fill:#ffffff;fill-opacity:1;stroke:none"
+     width="4.5"
+     height="1"
+     x="5.75"
+     y="2.5" />
+  <!-- Node circles -->
+  <circle cx="4.25" cy="6.75" r="1" fill="#ffffff" />
+  <circle cx="11.75" cy="6.75" r="1" fill="#ffffff" />
+  <circle cx="5" cy="4.75" r="1" fill="#ffffff" />
+  <circle cx="11" cy="4.75" r="1" fill="#ffffff" />
+  <circle cx="5.75" cy="3" r="1" fill="#ffffff" />
+  <circle cx="10.25" cy="3" r="1" fill="#ffffff" />
+  <circle cx="8" cy="1.5" r="1" fill="#ffffff" />
+</svg> 
