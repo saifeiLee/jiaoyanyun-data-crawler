@@ -1,14 +1,19 @@
 // 监听来自弹出窗口的消息
 const subjects = [
   "语文",
-  // "数学",
-  // "英语",
-  // "物理",
-  // "化学",
-  // "生物",
-  // "政治",
-  // "历史",
-  // "地理",
+  "数学",
+  "英语",
+  "物理",
+  "化学",
+  "生物",
+  "政治",
+  "历史",
+  "地理",
+]
+
+const grades = [
+  "高中",
+  "初中",
 ]
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -16,13 +21,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('开始采集数据, 科目:', message.subject);
 
     try {
-      collectData(message.subject)
+      collectData()
         .then(data => {
           // 发送数据到background.js进行下载
           chrome.runtime.sendMessage({
             action: 'downloadData',
             data: data,
-            filename: `${message.subject}_知识树数据.json`
+            filename: `知识树数据.json`
           });
 
           sendResponse({ success: true });
@@ -45,27 +50,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 主要数据采集函数
 async function collectData() {
-  try {
-    // 1. 选择"高中"选项
-    // await selectHighSchool();
-    const grade = '高中';
-    const gradeElement = await getGradesElement(grade);
-    const parentElement = gradeElement.parentElement;
-    console.log('已选择高中');
+  const result = {}
+  const startTime = new Date()
+  for (const grade of grades) {
+    try {
+      // 1. 选择"高中"选项
+      const gradeElement = await getGradesElement(grade);
+      const parentElement = gradeElement.parentElement;
+      console.log(`已选择${grade}`);
+      const subjectData = {}
 
-    for (const subject of subjects) {
-      await selectSubject(parentElement, subject);
-      console.log(`已选择${subject}学科`);
-      const knowledgeTreeElement = await getKnowledgeTreeElement();
-      if (!knowledgeTreeElement) {
-        throw new Error(`未找到知识树标签`);
+      for (const subject of subjects) {
+        await selectSubject(parentElement, subject);
+        console.log(`已选择${subject}学科`);
+        const knowledgeTreeElement = await getKnowledgeTreeElement();
+        if (!knowledgeTreeElement) {
+          throw new Error(`未找到知识树标签`);
+        }
+        const knowledgeTreeData = await collectKnowledgeTreeData(knowledgeTreeElement);
+        subjectData[subject] = knowledgeTreeData
       }
-      const knowledgeTreeData = await collectKnowledgeTreeData(knowledgeTreeElement);
+      result[grade] = subjectData
+      const endTime = new Date()
+      const duration = endTime - startTime
+      console.log(`${grade}学科数据采集完成, 耗时: ${duration}ms`);
+      
+      return result
+    } catch (error) {
+      console.error('数据采集过程中出错:', error);
+      throw error;
     }
-
-  } catch (error) {
-    console.error('数据采集过程中出错:', error);
-    throw error;
   }
 }
 
@@ -129,80 +143,75 @@ async function getKnowledgeTreeElement() {
 // 采集知识树数据
 async function collectKnowledgeTreeData(knowledgeTreeElement) {
   // 找到知识树的各个节点
-  const knowledgePointsElement = knowledgeTreeElement.querySelectorAll('.el-tree-node__content')
+  const knowledgePointsElement = knowledgeTreeElement.querySelectorAll('.el-tree-node')
   console.log('knowledgePointsElement', knowledgePointsElement)
-  const knowledgePointsData = await extractKnowledgeTreeData(knowledgePointsElement);
-
+  const result = []
+  // 遍历每个节点
+  for (const element of knowledgePointsElement) {
+    console.log('element', element.innerText)
+    const knowledgePointData = await extractKnowledgeTreeData(element);
+    console.log('knowledgePointData', knowledgePointData)
+    result.push(knowledgePointData)
+  }
+  return result
 }
 
 /**
  * 递归提取知识树数据
- * @param {*} container 
+ * 叶子节点的class里有'is-leaf'
+ * 所有节点的class都有'el-tree-node__expand-icon'
+ * 节点展开后,class里有一个'expanded'
+ * 树形知识点节点的选择器结构规律:
+ *  .el-tree-node
+ *    .el-tree-node__content
+ *    .el-tree-node__children
+ * @param {*} container 标签元素
  * @returns 返回树结构的知识点标签数据
  * 
  * 例如:
  * {
  *   "name": "集合",
- *   "hasChildren": true,
  *   "children": [
  *     {
  *       "name": "集合的定义",
- *       "hasChildren": true,
  *       "children": []
  *     }
  *   ]
  * }
  */
 async function extractKnowledgeTreeData(container) {
-  // 查找所有顶级知识点
-  const topLevelItems = container.querySelectorAll(':scope > li, :scope > .tree-node, :scope > .tree-item, :scope > .知识点');
-
-  if (topLevelItems.length === 0) {
-    // 更通用的方法：查找所有看起来像树节点的元素
-    const allTreeItems = container.querySelectorAll('.tree-node, .知识点, .tree-item, [role="treeitem"]');
-
-    if (allTreeItems.length > 0) {
-      return await buildTreeFromFlatItems(allTreeItems);
+  const targetElement = container.querySelector('.el-tree-node__content')
+  const expandIconElement = targetElement.querySelector('.el-tree-node__expand-icon')
+  const isLeaf = expandIconElement.classList.contains('is-leaf')
+  const name = targetElement.innerText
+  const expanded = expandIconElement.classList.contains('expanded')
+  const children = []
+  if (isLeaf) {
+    return {
+      name,
+      children
     }
-
-    console.warn('在容器中未找到知识点', container);
-    return [];
   }
 
-  const result = [];
-
-  for (const item of topLevelItems) {
-    const itemData = {
-      name: getNodeText(item),
-      id: item.getAttribute('id') || item.getAttribute('data-id') || generateId(getNodeText(item))
-    };
-
-    // 检查是否可以展开
-    const expandButton = item.querySelector('.expand-icon, .折叠图标, .arrow, [aria-expanded="false"]');
-    if (expandButton) {
-      // 点击展开
-      expandButton.click();
-      await sleep(500);
-
-      // 查找子项容器
-      const childContainer = item.querySelector('.children, .child-items, ul, [role="group"]');
-      if (childContainer) {
-        itemData.children = await extractKnowledgeTreeData(childContainer);
-      }
-    } else {
-      // 已经展开或无子节点
-      const childContainer = item.querySelector('.children, .child-items, ul, [role="group"]');
-      if (childContainer) {
-        itemData.children = await extractKnowledgeTreeData(childContainer);
-      } else {
-        itemData.children = [];
-      }
+  if (!isLeaf && !expanded) {
+    // 展开节点
+    expandIconElement.click()
+    await sleep(1000)
+    // 获取子节点
+    const childContainer = container.querySelector('.el-tree-node__children')
+    const childNodes = childContainer.querySelectorAll('.el-tree-node')
+    for (const childNode of childNodes) {
+      const childNodeData = await extractKnowledgeTreeData(childNode)
+      children.push(childNodeData)
     }
-
-    result.push(itemData);
+    // 收起节点
+    expandIconElement.click()
+    await sleep(1000)
   }
-
-  return result;
+  return {
+    name,
+    children
+  }
 }
 
 // 从扁平树项构建层次结构
