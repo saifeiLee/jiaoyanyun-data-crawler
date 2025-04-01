@@ -75,12 +75,12 @@ async function collectData() {
       const duration = endTime - startTime
       console.log(`${grade}学科数据采集完成, 耗时: ${duration}ms`);
       
-      return result
     } catch (error) {
       console.error('数据采集过程中出错:', error);
       throw error;
     }
   }
+  return result
 }
 
 /**
