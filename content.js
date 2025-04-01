@@ -1,14 +1,14 @@
 // 监听来自弹出窗口的消息
 const subjects = [
   "语文",
-  "数学",
-  "英语",
-  "物理",
-  "化学",
-  "生物",
-  "政治",
-  "历史",
-  "地理",
+  // "数学",
+  // "英语",
+  // "物理",
+  // "化学",
+  // "生物",
+  // "政治",
+  // "历史",
+  // "地理",
 ]
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -56,7 +56,11 @@ async function collectData() {
     for (const subject of subjects) {
       await selectSubject(parentElement, subject);
       console.log(`已选择${subject}学科`);
-      
+      const knowledgeTreeElement = await getKnowledgeTreeElement();
+      if (!knowledgeTreeElement) {
+        throw new Error(`未找到知识树标签`);
+      }
+      const knowledgeTreeData = await collectKnowledgeTreeData(knowledgeTreeElement);
     }
 
   } catch (error) {
@@ -69,7 +73,7 @@ async function collectData() {
  * 获取学段所在的DOM
  * @param {*} grade 学段. 高中 | 初中
  */
-async function getGradesElement(grade="高中") {
+async function getGradesElement(grade = "高中") {
   const gradeElement = document.querySelectorAll('.el-select-group__title');
   if (!gradeElement) {
     throw new Error(`未找到学段: ${grade}`);
@@ -81,8 +85,6 @@ async function getGradesElement(grade="高中") {
       return element;
     }
   }
-
-  // throw new Error(`未找到学段: ${grade}`);
 }
 
 // 选择学科
@@ -97,79 +99,60 @@ async function selectSubject(parentElement, subjectName) {
       return true;
     }
   }
-
-  // 可能需要先点击学科筛选按钮
-  const subjectFilterBtn = document.querySelector('.学科按钮, button:contains("学科")');
-  if (subjectFilterBtn) {
-    subjectFilterBtn.click();
-    await sleep(500);
-
-    // 在弹出的下拉菜单中查找语文
-    const subjectOption = Array.from(document.querySelectorAll('.下拉菜单 .选项, li, .option-item'))
-      .find(el => el.textContent.includes(subjectName));
-
-    if (subjectOption) {
-      subjectOption.click();
-      await sleep(1000);
-      return true;
-    }
-  }
-
-  throw new Error(`未找到${subjectName}学科选项`);
 }
 
 // 选择知识树标签
-async function selectKnowledgeTree() {
+async function getKnowledgeTreeElement() {
   // 查找并点击"知识树"或"知识点"标签
-  const knowledgeTreeTab = Array.from(document.querySelectorAll('.tab, .标签页, .nav-item'))
-    .find(el => el.textContent.includes('知识点') || el.textContent.includes('知识树'));
+  const knowledgeTreeTab = document.querySelector('.el-aside.tk-select-left')
+  // 只处理"新授课方法"
+  // 1. 点击方法选择框,在下拉框里确保选中“新授课方法”
+  const methodSelectBox = knowledgeTreeTab.querySelector('.el-input__suffix')
+  methodSelectBox.click();
+  await sleep(1000);
+  // 2. 在弹出的下拉框中查找“新授课方法”
+  const methodOptions = document.querySelectorAll('.el-select-dropdown__item')
+  for (const option of methodOptions) {
+    if (option.innerText.includes('新授课方法')) {
+      option.click();
+      await sleep(1000);
+    }
+  }
 
   if (knowledgeTreeTab) {
     knowledgeTreeTab.click();
     await sleep(1000);
-    return true;
   }
-
-  // 如果已经在知识树页面，无需点击
-  const isKnowledgeTreeActive = document.querySelector('.知识树.active, .知识点.active, .知识点树');
-  if (isKnowledgeTreeActive) {
-    return true;
-  }
-
-  console.warn('未找到知识树标签，继续尝试采集数据');
-  return false;
+  return knowledgeTreeTab;
 }
 
 // 采集知识树数据
-async function collectKnowledgeTreeData() {
-  // 找到知识树容器
-  const treeContainer = document.querySelector('.知识树, .tree-component, .知识点树, .知识树内容区');
-  if (!treeContainer) {
-    // 尝试更通用的选择器
-    const possibleContainers = [
-      '.tree',
-      '[role="tree"]',
-      '.knowledge-tree',
-      '.tree-view',
-      // 根据图片中的结构
-      '.知识树树形结构',
-      '#知识树内容'
-    ];
+async function collectKnowledgeTreeData(knowledgeTreeElement) {
+  // 找到知识树的各个节点
+  const knowledgePointsElement = knowledgeTreeElement.querySelectorAll('.el-tree-node__content')
+  console.log('knowledgePointsElement', knowledgePointsElement)
+  const knowledgePointsData = await extractKnowledgeTreeData(knowledgePointsElement);
 
-    for (const selector of possibleContainers) {
-      const container = document.querySelector(selector);
-      if (container) {
-        return await extractKnowledgeTreeData(container);
-      }
-    }
-
-    throw new Error('未找到知识树容器');
-  }
-
-  return await extractKnowledgeTreeData(treeContainer);
 }
 
-// 递归提取知识树数据
+/**
+ * 递归提取知识树数据
+ * @param {*} container 
+ * @returns 返回树结构的知识点标签数据
+ * 
+ * 例如:
+ * {
+ *   "name": "集合",
+ *   "hasChildren": true,
+ *   "children": [
+ *     {
+ *       "name": "集合的定义",
+ *       "hasChildren": true,
+ *       "children": []
+ *     }
+ *   ]
+ * }
+ */
 async function extractKnowledgeTreeData(container) {
   // 查找所有顶级知识点
   const topLevelItems = container.querySelectorAll(':scope > li, :scope > .tree-node, :scope > .tree-item, :scope > .知识点');
