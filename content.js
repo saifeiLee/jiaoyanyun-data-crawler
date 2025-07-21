@@ -50,6 +50,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const videoDataCollector = new VideoDataCollector();
       videoDataCollector.collectVideoData().then(data => {
         console.log('data:', data);
+        chrome.runtime.sendMessage({
+          action: 'downloadData',
+          data: data,
+          filename: `视频数据.json`
+        });
         sendResponse({ success: true });
       }).catch(error => {
         console.error('采集视频出错:', error);
@@ -437,7 +442,7 @@ class VideoDataCollector {
       if (element.getAttribute('title').includes(subjectName)) {
         console.log(`找到了学科: ${subjectName}`);
         element.click();
-        await sleep(200);
+        await sleep(3000);
         return true;
       }
     }
@@ -445,9 +450,10 @@ class VideoDataCollector {
 
   /**
    * 选择知识点，并采集视频信息
+   * @returns {Object} 
    */
   async selectKnowledgePointAndCollectVideoInfo() {
-    let result = []
+    let result = {}
     const knowledgePointQuery = `.ant-tree-list-holder-inner`
     const knowledgePointElement = document.querySelector(knowledgePointQuery)
     if (!knowledgePointElement) {
@@ -461,13 +467,10 @@ class VideoDataCollector {
       const checkboxElement = element.querySelector('.ant-tree-checkbox')
       // 单击checkbox元素，触发知识点选择
       checkboxElement.click()
-      await sleep(2000)
+      await sleep(5000)
       const videoInfo = await this.collectVideoInfo()
       console.log(`采集到了视频信息: ${videoInfo}`)
-      result.push({
-        knowledgePointName,
-        videoInfo
-      })
+      result[knowledgePointName] = videoInfo
       // 取消知识点选择
       checkboxElement.click()
       await sleep(2000)
@@ -592,17 +595,13 @@ class VideoDataCollector {
 
 
   async collectVideoData() {
+    const result = {}
     for (const subject of this.subjects) {
       await this.selectSubject(subject);
       const videoInfo = await this.selectKnowledgePointAndCollectVideoInfo();
       console.log('videoInfo:', videoInfo)
-      return videoInfo;
+      result[subject] = videoInfo
     }
+    return result
   }
 }
-
-// async function startCollectVideo() {
-//   const videoDataCollector = new VideoDataCollector();
-//   await videoDataCollector.collectVideoData();
-//   return { success: true };
-// }
