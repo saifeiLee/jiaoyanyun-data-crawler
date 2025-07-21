@@ -418,7 +418,7 @@ const allSubjects = [
   "历史",
   "地理",
 ]
-
+const clickedShareToStudent = new Set()
 
 class VideoDataCollector {
   constructor() {
@@ -518,10 +518,76 @@ class VideoDataCollector {
         data["labels"] = labels
       }
 
+      const link = await this.collectVideoPlayUrl(videoInfo, data)
+      data["link"] = link
+
       result.push(data)
     }
     console.log('收集到的信息:', result)
     return result
+  }
+
+
+  // 采集视频的播放链接（永久有效）
+  /**
+   * 
+   * @param {HTMLElement} videoInfoElement 
+   * @param {Object} collectedData 
+   * @returns {string} 
+   */
+  async collectVideoPlayUrl(videoInfoElement, collectedData) {
+    const hoverButtonElement = videoInfoElement.querySelector('.video-list-menu')
+    if (!hoverButtonElement) {
+      console.log(`未找到视频播放按钮: ${videoInfoElement}`);
+      return null
+    }
+    hoverButtonElement.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }))
+    await sleep(500)
+    // console.log('hoverButtonElement:', hoverButtonElement)
+    //下拉选择列表的dom结构:
+    // <ul class="ant-dropdown-menu ant-dropdown-menu-root ant-dropdown-menu-vertical ant-dropdown-menu-light css-x93v21" role="menu" tabindex="0" data-menu-list="true"><li class="ant-dropdown-menu-item" role="menuitem" tabindex="-1" data-menu-id="rc-menu-uuid-75965-2-1"><span role="img" class="anticon ant-dropdown-menu-item-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.66957 4.27791L0.507812 2.11615L1.45062 1.17334L3.61238 3.3351H13.7735C14.1417 3.3351 14.4402 3.63357 14.4402 4.00177C14.4402 4.06665 14.4307 4.13118 14.4121 4.19333L12.8121 9.52669C12.7275 9.80863 12.4679 10.0018 12.1735 10.0018H4.00291V11.3351H11.3363V12.6684H3.33624C2.96805 12.6684 2.66957 12.37 2.66957 12.0018V4.27791ZM4.00291 4.66843V8.66843H11.6775L12.8775 4.66843H4.00291ZM3.66957 15.3351C3.11729 15.3351 2.66957 14.8874 2.66957 14.3351C2.66957 13.7828 3.11729 13.3351 3.66957 13.3351C4.22186 13.3351 4.66957 13.7828 4.66957 14.3351C4.66957 14.8874 4.22186 15.3351 3.66957 15.3351ZM11.6696 15.3351C11.1173 15.3351 10.6696 14.8874 10.6696 14.3351C10.6696 13.7828 11.1173 13.3351 11.6696 13.3351C12.2219 13.3351 12.6696 13.7828 12.6696 14.3351C12.6696 14.8874 12.2219 15.3351 11.6696 15.3351Z" fill="#666666"></path></svg></span><span class="ant-dropdown-menu-title-content">加资料车</span></li><li class="ant-dropdown-menu-item" role="menuitem" tabindex="-1" data-menu-id="rc-menu-uuid-75965-2-2"><span role="img" class="anticon ant-dropdown-menu-item-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.3997 4.66667C8.659 4.67075 7.28 4.98925 6.12267 5.61983C5.02592 6.21191 4.13309 7.12079 3.56067 8.22792C3.46558 8.40933 3.3775 8.596 3.297 8.78792C3.262 8.87309 3.2165 8.99092 3.16167 9.14142C3.14119 9.19768 3.1039 9.24628 3.05485 9.28061C3.0058 9.31495 2.94737 9.33335 2.8875 9.33333H2.26917C2.22313 9.3333 2.17776 9.32237 2.13676 9.30144C2.09576 9.28051 2.06029 9.25016 2.03327 9.2129C2.00624 9.17563 1.98842 9.13249 1.98126 9.08702C1.9741 9.04154 1.97781 8.99502 1.99208 8.95125L2.023 8.85792C2.16268 8.45216 2.33312 8.05765 2.53283 7.67783C3.21314 6.36716 4.27211 5.29153 5.572 4.59083C6.874 3.88325 8.42858 3.50467 10.4003 3.5L8.92033 2.02009C8.81171 1.91063 8.75095 1.76256 8.75139 1.60835C8.75183 1.45415 8.81343 1.30642 8.92267 1.19759C9.0315 1.08834 9.17923 1.02675 9.33344 1.02631C9.48764 1.02587 9.63571 1.08663 9.74517 1.19525L12.4273 3.87683C12.4545 3.90393 12.476 3.93611 12.4907 3.97155C12.5055 4.00698 12.513 4.04497 12.513 4.08333C12.513 4.1217 12.5055 4.15969 12.4907 4.19512C12.476 4.23056 12.4545 4.26274 12.4273 4.28983L9.74342 6.97375C9.63392 7.08105 9.48635 7.14056 9.33305 7.13925C9.17976 7.13793 9.03323 7.0759 8.92558 6.96675C8.81635 6.85918 8.75422 6.7127 8.7528 6.5594C8.75138 6.4061 8.81078 6.25849 8.918 6.14892L10.4003 4.66725L10.3997 4.66667ZM11.6667 10.5C11.8214 10.5 11.9698 10.5615 12.0791 10.6709C12.1885 10.7803 12.25 10.9286 12.25 11.0833V12.25C12.25 12.4047 12.1885 12.5531 12.0791 12.6625C11.9698 12.7719 11.8214 12.8333 11.6667 12.8333H2.33333C2.17862 12.8333 2.03025 12.7719 1.92085 12.6625C1.81146 12.5531 1.75 12.4047 1.75 12.25V11.0833C1.75 10.9286 1.81146 10.7803 1.92085 10.6709C2.03025 10.5615 2.17862 10.5 2.33333 10.5C2.48804 10.5 2.63642 10.5615 2.74581 10.6709C2.85521 10.7803 2.91667 10.9286 2.91667 11.0833V11.6667H11.0833V11.0833C11.0833 10.9286 11.1448 10.7803 11.2542 10.6709C11.3636 10.5615 11.512 10.5 11.6667 10.5Z" fill="black" fill-opacity="0.65"></path></svg></span><span class="ant-dropdown-menu-title-content">分享给学生</span></li></ul>
+    // 我们需要点击"分享给学生"
+    let shareToStudentElement = null;
+    const dropdownMenuElements = document.querySelectorAll('.ant-dropdown-menu-item')
+    // 根据data-menu-id，避免重复点击
+    for (const element of dropdownMenuElements) {
+      if (element.innerText.includes('分享给学生')) {
+        if (clickedShareToStudent.has(element.dataset.menuId)) {
+          continue
+        }
+        clickedShareToStudent.add(element.dataset.menuId)
+        shareToStudentElement = element
+        break
+      }
+    }
+    if (shareToStudentElement) {
+      shareToStudentElement.click()
+      await sleep(5000)
+    }
+    const shareCardModalElement = document.querySelector('.ant-modal-content')
+    if (!shareCardModalElement) {
+      console.log(`未找到分享卡片弹窗: ${shareCardModalElement}`);
+      return null
+    }
+    const modalContentElement = shareCardModalElement.querySelector('.ant-modal-body .content')
+    const rightBoxElement = modalContentElement.querySelector('.right-box')
+    const titleElement = rightBoxElement.querySelector('.title-title')
+    const title = titleElement.innerText
+    // 已收集到的标题可能包含后缀,例如 词语辨析方法.mp4，而分享卡片弹窗的标题可能不包含后缀
+    // 所以需要判断已收集到的标题是否包含分享卡片弹窗的标题
+    if (collectedData["name"] !== title && !collectedData["name"].includes(title.trim())) {
+      throw new Error(`视频名称不匹配: ${collectedData["name"]} !== ${title}, 或者 ${collectedData["name"]} 不包含 ${title} (已收集到的标题: ${collectedData["name"]}, 分享卡片弹窗的标题: ${title}); ${collectedData["name"].includes(title)}`)
+    }
+    const linkElement = rightBoxElement.querySelector('.link-option .link-input')
+    const link = linkElement.value
+    console.log(`采集到了视频播放链接: ${link}`)
+    const closeButtonElement = shareCardModalElement.querySelector('.ant-modal-close-x')
+    if (closeButtonElement) {
+      closeButtonElement.click()
+      await sleep(500)
+    }
+    
+    return link
   }
 
 
