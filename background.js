@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.downloads.download({
       url: dataUrl,
       filename: filename,
-      saveAs: true
+      saveAs: false  // 设置为false实现自动下载，无需用户选择保存位置
     }, (downloadId) => {
       if (chrome.runtime.lastError) {
         console.error('下载错误:', chrome.runtime.lastError);
