@@ -49,18 +49,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       const videoDataCollector = new VideoDataCollector();
       videoDataCollector.collectVideoData().then(data => {
-        console.log('data:', data);
-        chrome.runtime.sendMessage({
-          action: 'downloadData',
-          data: data,
-          filename: `视频数据.json`
-        });
-        sendResponse({ success: true });
+        console.log('所有学科采集完成:', data);
+        // 不再需要统一下载，因为每个学科都已经单独下载了
+        sendResponse({ success: true, message: '所有学科视频数据采集完成，已分别下载到本地' });
       }).catch(error => {
         console.error('采集视频出错:', error);
         sendResponse({ success: false, error: error.message });
       });
-      sendResponse({ success: true });
+      
+      // 异步响应
+      return true;
     } catch (error) {
       console.error('采集视频出错:', error);
       sendResponse({ success: false, error: error.message });
@@ -413,7 +411,7 @@ function waitForElement(selector, timeout = 5000) {
  *  */
 
 const allSubjects = [
-  "语文",
+  // "语文",
   "数学",
   "英语",
   "物理",
@@ -442,7 +440,7 @@ class VideoDataCollector {
       if (element.getAttribute('title').includes(subjectName)) {
         console.log(`找到了学科: ${subjectName}`);
         element.click();
-        await sleep(3000);
+        await sleep(5000);
         return true;
       }
     }
@@ -541,7 +539,7 @@ class VideoDataCollector {
   async collectVideoPlayUrl(videoInfoElement, collectedData) {
     const hoverButtonElement = videoInfoElement.querySelector('.video-list-menu')
     if (!hoverButtonElement) {
-      console.log(`未找到视频播放按钮: ${videoInfoElement}`);
+      console.log(`未找到下拉列表按钮: ${videoInfoElement}`);
       return null
     }
     hoverButtonElement.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }))
@@ -579,7 +577,8 @@ class VideoDataCollector {
     // 已收集到的标题可能包含后缀,例如 词语辨析方法.mp4，而分享卡片弹窗的标题可能不包含后缀
     // 所以需要判断已收集到的标题是否包含分享卡片弹窗的标题
     if (collectedData["name"] !== title && !collectedData["name"].includes(title.trim())) {
-      throw new Error(`视频名称不匹配: ${collectedData["name"]} !== ${title}, 或者 ${collectedData["name"]} 不包含 ${title} (已收集到的标题: ${collectedData["name"]}, 分享卡片弹窗的标题: ${title}); ${collectedData["name"].includes(title)}`)
+      console.error(`视频名称不匹配: ${collectedData["name"]} !== ${title}, 或者 ${collectedData["name"]} 不包含 ${title} (已收集到的标题: ${collectedData["name"]}, 分享卡片弹窗的标题: ${title}); ${collectedData["name"].includes(title)}`)
+      return null
     }
     const linkElement = rightBoxElement.querySelector('.link-option .link-input')
     const link = linkElement.value
@@ -597,10 +596,29 @@ class VideoDataCollector {
   async collectVideoData() {
     const result = {}
     for (const subject of this.subjects) {
-      await this.selectSubject(subject);
-      const videoInfo = await this.selectKnowledgePointAndCollectVideoInfo();
-      console.log('videoInfo:', videoInfo)
-      result[subject] = videoInfo
+      try {
+        console.log(`开始采集学科: ${subject}`);
+        await this.selectSubject(subject);
+        const videoInfo = await this.selectKnowledgePointAndCollectVideoInfo();
+        console.log(`${subject}学科视频信息采集完成:`, videoInfo);
+        
+        // 立即下载当前学科的数据
+        chrome.runtime.sendMessage({
+          action: 'downloadData',
+          data: videoInfo,
+          filename: `${subject}_视频数据.json`
+        });
+        
+        result[subject] = videoInfo;
+        console.log(`${subject}学科数据已下载`);
+        await sleep(5000)
+        // 清除缓存
+        clickedShareToStudent.clear()
+      } catch (error) {
+        console.error(`采集${subject}学科数据出错:`, error);
+        // 即使某个学科出错，也继续采集其他学科
+        result[subject] = { error: error.message };
+      }
     }
     return result
   }
