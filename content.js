@@ -443,10 +443,87 @@ class VideoDataCollector {
     }
   }
 
+  /**
+   * 选择知识点，并采集视频信息
+   */
+  async selectKnowledgePointAndCollectVideoInfo() {
+    let result = []
+    const knowledgePointQuery = `.ant-tree-list-holder-inner`
+    const knowledgePointElement = document.querySelector(knowledgePointQuery)
+    if (!knowledgePointElement) {
+      throw new Error(`未找到知识点选择框: ${knowledgePointQuery}`);
+    }
+    const knowledgePointElements = knowledgePointElement.querySelectorAll('.ant-tree-treenode')
+    console.log('knowledgePointElements:', knowledgePointElements)
+    for (const element of knowledgePointElements) {
+      const knowledgePointName = element.querySelector('.ant-tree-title').innerText
+      console.log(`找到了知识点: ${knowledgePointName}`)
+      const checkboxElement = element.querySelector('.ant-tree-checkbox')
+      // 单击checkbox元素，触发知识点选择
+      checkboxElement.click()
+      await sleep(2000)
+      const videoInfo = await this.collectVideoInfo()
+      console.log(`采集到了视频信息: ${videoInfo}`)
+      result.push({
+        knowledgePointName,
+        videoInfo
+      })
+      // 取消知识点选择
+      checkboxElement.click()
+      await sleep(2000)
+    }
+    return result
+  }
+
+  async collectVideoInfo() {
+    const videoListQuery = `.video-list .video-list-content .list-ul`
+    const videoListContainerElm = document.querySelectorAll(videoListQuery)
+    if (!videoListContainerElm) {
+      throw new Error(`未找到视频列表容器: ${videoListQuery}`);
+    }
+    // 获取所有的<li>元素
+    const videoListElements = videoListContainerElm.querySelectorAll('li')
+    const result = []
+    for (const element of videoListElements) {
+      let data = {}
+      const videoCard = element.querySelector('.video-card')
+      const videoInfo = element.querySelector('.video-info')
+      // 获取封面信息
+      const coverElement = videoCard.querySelector('.cover-info')
+      // 封面相关的dom结构:
+      // <div class="cover-info"><img src="https://imgs.genshuixue.com/00-x-upload/image/207790829_c8545926f5253673d26ed1091342bf00_3y233GpW.jpg" class="cover-img"><span class="vid-time">00:11:03</span></div>
+      const coverUrl = coverElement.querySelector('.cover-img').src
+      const videoTime = coverElement.querySelector('.vid-time').innerText
+      data["coverUrl"] = coverUrl
+      data["duration"] = videoTime
+
+      // 获取视频基本信息
+      // 视频信息相关的DOM结构:
+      // <div class="video-info" id="cover-12132251322026227"><div class="vid-name"><span>【知识】【学院派】词语辨析方法</span><div class="cus-labels undefined"><div class="cus-inner-wrap" id="12132251322026227-cus-inner-wrap"><span id="12132251322026227_马一鸣" class="12132251322026227-label-tag teacher-tag">马一鸣</span><span id="12132251322026227_词语辨析" class="12132251322026227-label-tag know-label-tag">词语辨析</span><span class="rest-node label-tag" id="12132251322026227-rest-node" style="display: none;">···</span></div></div></div><button type="button" class="ant-btn css-x93v21 ant-btn-text ant-dropdown-trigger video-list-menu"><span role="img" aria-label="menu" class="anticon anticon-menu" style="color: rgb(34, 102, 255);"><svg viewBox="64 64 896 896" focusable="false" data-icon="menu" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M904 160H120c-4.4 0-8 3.6-8 8v64c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-64c0-4.4-3.6-8-8-8zm0 624H120c-4.4 0-8 3.6-8 8v64c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-64c0-4.4-3.6-8-8-8zm0-312H120c-4.4 0-8 3.6-8 8v64c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-64c0-4.4-3.6-8-8-8z"></path></svg></span></button></div>
+      const videoNameElement = videoInfo.querySelector('.vid-name')
+      const videoName = videoNameElement.querySelector('span').innerText
+      data["name"] = videoName
+      const videoTeacherElement = videoInfo.querySelector('.teacher-tag')
+      const videoTeacher = videoTeacherElement.innerText
+      data["teacher"] = videoTeacher
+      const videoKnowLabelElement = videoInfo.querySelector('.know-label-tag')
+      const videoKnowLabel = videoKnowLabelElement.innerText
+      const labels = [videoKnowLabel]
+      data["labels"] = labels
+
+      result.push(data)
+    }
+    console.log('收集到的信息:', result)
+    return result
+  }
+
+
   async collectVideoData() {
     for (const subject of this.subjects) {
       await this.selectSubject(subject);
-      return true;
+      const videoInfo = await this.selectKnowledgePointAndCollectVideoInfo();
+      console.log('videoInfo:', videoInfo)
+      return videoInfo;
     }
   }
 }
