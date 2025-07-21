@@ -12,8 +12,8 @@ const subjects = [
 ]
 
 const grades = [
-  "高中",
   "初中",
+  "高中",
 ]
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -41,6 +41,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     } catch (error) {
       console.error('采集数据出错:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+  if (message.action === 'startCollectVideo') {
+    console.log('开始采集视频');
+    try {
+      const videoDataCollector = new VideoDataCollector();
+      videoDataCollector.collectVideoData().then(data => {
+        console.log('data:', data);
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error('采集视频出错:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error('采集视频出错:', error);
       sendResponse({ success: false, error: error.message });
     }
   }
@@ -74,7 +91,7 @@ async function collectData() {
       const endTime = new Date()
       const duration = endTime - startTime
       console.log(`${grade}学科数据采集完成, 耗时: ${duration}ms`);
-      
+
     } catch (error) {
       console.error('数据采集过程中出错:', error);
       throw error;
@@ -109,7 +126,7 @@ async function selectSubject(parentElement, subjectName) {
   for (const element of subjectElements) {
     if (element.innerText.includes(subjectName)) {
       element.click();
-      await sleep(1000);
+      await sleep(200);
       return true;
     }
   }
@@ -123,19 +140,19 @@ async function getKnowledgeTreeElement() {
   // 1. 点击方法选择框,在下拉框里确保选中“新授课方法”
   const methodSelectBox = knowledgeTreeTab.querySelector('.el-input__suffix')
   methodSelectBox.click();
-  await sleep(1000);
+  await sleep(200);
   // 2. 在弹出的下拉框中查找“新授课方法”
   const methodOptions = document.querySelectorAll('.el-select-dropdown__item')
   for (const option of methodOptions) {
     if (option.innerText.includes('新授课方法')) {
       option.click();
-      await sleep(1000);
+      await sleep(200);
     }
   }
 
   if (knowledgeTreeTab) {
     knowledgeTreeTab.click();
-    await sleep(1000);
+    await sleep(200);
   }
   return knowledgeTreeTab;
 }
@@ -196,7 +213,7 @@ async function extractKnowledgeTreeData(container) {
   if (!isLeaf && !expanded) {
     // 展开节点
     expandIconElement.click()
-    await sleep(1000)
+    await sleep(200)
     // 获取子节点
     const childContainer = container.querySelector('.el-tree-node__children')
     const childNodes = childContainer.querySelectorAll('.el-tree-node')
@@ -206,7 +223,7 @@ async function extractKnowledgeTreeData(container) {
     }
     // 收起节点
     expandIconElement.click()
-    await sleep(1000)
+    await sleep(200)
   }
   return {
     name,
@@ -383,4 +400,59 @@ function waitForElement(selector, timeout = 5000) {
       }
     }, timeout);
   });
-} 
+}
+
+
+/**
+ * 获取视频数据
+ *  */
+
+const allSubjects = [
+  "语文",
+  "数学",
+  "英语",
+  "物理",
+  "化学",
+  "生物",
+  "政治",
+  "历史",
+  "地理",
+]
+
+
+class VideoDataCollector {
+  constructor() {
+    this.subjects = allSubjects
+  }
+
+  async selectSubject(subjectName) {
+    /**
+     * 下拉框的层级接口：
+     * <ul class="ant-cascader-menu" role="menu"><li class="ant-cascader-menu-item ant-cascader-menu-item-active" role="menuitemcheckbox" title="数学" aria-checked="true" data-path-key="1__RC_CASCADER_SPLIT__1"><div class="ant-cascader-menu-item-content">数学</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="化学" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__2"><div class="ant-cascader-menu-item-content">化学</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="生物" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__3"><div class="ant-cascader-menu-item-content">生物</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="英语" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__4"><div class="ant-cascader-menu-item-content">英语</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="语文" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__5"><div class="ant-cascader-menu-item-content">语文</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="物理" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__6"><div class="ant-cascader-menu-item-content">物理</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="政治" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__7"><div class="ant-cascader-menu-item-content">政治</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="地理" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__11"><div class="ant-cascader-menu-item-content">地理</div></li><li class="ant-cascader-menu-item" role="menuitemcheckbox" title="历史" aria-checked="false" data-path-key="1__RC_CASCADER_SPLIT__12"><div class="ant-cascader-menu-item-content">历史</div></li></ul>
+     */
+    // 直接找到选择框内的元素点击选中，无需触发下拉框
+    const subjectElements = document.querySelectorAll('.ant-cascader-menu .ant-cascader-menu-item')
+    for (const element of subjectElements) {
+      // 检查title属性是否学科名
+      if (element.getAttribute('title').includes(subjectName)) {
+        console.log(`找到了学科: ${subjectName}`);
+        element.click();
+        await sleep(200);
+        return true;
+      }
+    }
+  }
+
+  async collectVideoData() {
+    for (const subject of this.subjects) {
+      await this.selectSubject(subject);
+      return true;
+    }
+  }
+}
+
+// async function startCollectVideo() {
+//   const videoDataCollector = new VideoDataCollector();
+//   await videoDataCollector.collectVideoData();
+//   return { success: true };
+// }

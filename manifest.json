@@ -21,7 +21,8 @@
         "https://*.jiaoyanyun.com/*", 
         "https://*.gaotu100.com/*",
         "https://*.jyy.com/*",
-        "https://*.cms.education/*"
+        "https://*.cms.education/*",
+        "https://ziliaocms.baijia.com/*"
       ],
       "js": ["content.js"]
     }

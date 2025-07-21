@@ -75,4 +75,22 @@ document.addEventListener('DOMContentLoaded', function() {
       subjectSelect.appendChild(option);
     });
   }
+
+  const startVideoCollectionButton = document.getElementById('startVideoCollection');
+  startVideoCollectionButton.addEventListener('click', async () => {
+    console.log('采集视频');
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'startCollectVideo'
+      });
+      if (response && response.success) {
+        console.log('采集视频成功');
+      } else {
+        console.error('采集视频失败:', response?.error || '未知错误');
+      }
+    } catch (error) {
+      console.error('采集视频失败:', error);
+    }
+  });
 }); 
