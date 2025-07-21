@@ -477,13 +477,14 @@ class VideoDataCollector {
 
   async collectVideoInfo() {
     const videoListQuery = `.video-list .video-list-content .list-ul`
-    const videoListContainerElm = document.querySelectorAll(videoListQuery)
+    const videoListContainerElm = document.querySelector(videoListQuery)
+    const result = []
     if (!videoListContainerElm) {
-      throw new Error(`未找到视频列表容器: ${videoListQuery}`);
+      console.log(`未找到视频列表容器: ${videoListQuery}`);
+      return result
     }
     // 获取所有的<li>元素
     const videoListElements = videoListContainerElm.querySelectorAll('li')
-    const result = []
     for (const element of videoListElements) {
       let data = {}
       const videoCard = element.querySelector('.video-card')
@@ -504,12 +505,18 @@ class VideoDataCollector {
       const videoName = videoNameElement.querySelector('span').innerText
       data["name"] = videoName
       const videoTeacherElement = videoInfo.querySelector('.teacher-tag')
-      const videoTeacher = videoTeacherElement.innerText
-      data["teacher"] = videoTeacher
+      // 有些视频没有老师，所以需要判断是否存在
+      if (videoTeacherElement) {
+        const videoTeacher = videoTeacherElement.innerText
+        data["teacher"] = videoTeacher
+      }
       const videoKnowLabelElement = videoInfo.querySelector('.know-label-tag')
-      const videoKnowLabel = videoKnowLabelElement.innerText
-      const labels = [videoKnowLabel]
-      data["labels"] = labels
+      // 有些视频没有标签，所以需要判断是否存在
+      if (videoKnowLabelElement) {
+        const videoKnowLabel = videoKnowLabelElement.innerText
+        const labels = [videoKnowLabel]
+        data["labels"] = labels
+      }
 
       result.push(data)
     }
