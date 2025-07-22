@@ -411,7 +411,7 @@ function waitForElement(selector, timeout = 5000) {
  *  */
 
 const allSubjects = [
-  // "语文",
+  "语文",
   "数学",
   "英语",
   "物理",
@@ -588,6 +588,8 @@ class VideoDataCollector {
       closeButtonElement.click()
       await sleep(500)
     }
+    hoverButtonElement.dispatchEvent(new MouseEvent('pointerout', { bubbles: true }))
+    await sleep(500)
     
     return link
   }
